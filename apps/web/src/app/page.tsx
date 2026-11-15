@@ -23,7 +23,7 @@ export const metadata = {
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#FFFFFF] text-[#0A0A0A] selection:bg-[#2563EB]/20 font-sans">
+    <div id="top" className="min-h-screen bg-white text-[#101C20] selection:bg-[#16A34A]/20 font-sans">
       <Navbar />
       
       <main>

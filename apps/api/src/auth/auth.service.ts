@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { RegisterDto } from './dto/register.dto';
@@ -18,7 +18,6 @@ import { UserRole } from '../enums';
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly SALT_ROUNDS = 12;
-  private readonly REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
 
   constructor(
     private prisma: PrismaService,
@@ -215,12 +214,6 @@ export class AuthService {
         secret: process.env.JWT_REFRESH_SECRET || 'shipflow-jwt-refresh-secret-dev',
       });
 
-      // Verify stored refresh token
-      const storedToken = await this.redis.get(`refresh:${payload.sub}`);
-      if (!storedToken || storedToken !== refreshToken) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
         include: { organization: true },
@@ -230,12 +223,14 @@ export class AuthService {
         throw new UnauthorizedException('User not found or disabled');
       }
 
-      // Rotate tokens
-      const tokens = await this.generateTokens(user);
-      await this.storeRefreshToken(user.id, tokens.refreshToken);
+      // Verify against the stored (hashed) refresh token — persisted in the
+      // database so sessions survive API restarts.
+      if (!user.refreshToken || !this.tokenMatches(refreshToken, user.refreshToken)) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
 
-      // Invalidate old refresh token
-      await this.redis.del(`refresh:${user.id}`);
+      // Rotate tokens (storing the new one invalidates the old one)
+      const tokens = await this.generateTokens(user);
       await this.storeRefreshToken(user.id, tokens.refreshToken);
 
       return {
@@ -248,7 +243,7 @@ export class AuthService {
   }
 
   async logout(userId: string) {
-    await this.redis.del(`refresh:${userId}`);
+    await this.clearRefreshToken(userId);
     this.logger.log(`User logged out: ${userId}`);
   }
 
@@ -307,7 +302,7 @@ export class AuthService {
     });
 
     // Invalidate refresh tokens
-    await this.redis.del(`refresh:${userId}`);
+    await this.clearRefreshToken(userId);
 
     this.logger.log(`Password changed for user: ${userId}`);
   }
@@ -333,8 +328,30 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
+  // Refresh tokens are stored as a SHA-256 hash on the user row (never in
+  // plain text). One active session per user: storing a new token replaces it.
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private tokenMatches(token: string, storedHash: string): boolean {
+    const a = Buffer.from(this.hashToken(token), 'hex');
+    const b = Buffer.from(storedHash, 'hex');
+    return a.length === b.length && timingSafeEqual(a, b);
+  }
+
   private async storeRefreshToken(userId: string, token: string) {
-    await this.redis.set(`refresh:${userId}`, token, this.REFRESH_TOKEN_TTL);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { refreshToken: this.hashToken(token) },
+    });
+  }
+
+  private async clearRefreshToken(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { refreshToken: null },
+    });
   }
 
   private sanitizeUser(user: any) {

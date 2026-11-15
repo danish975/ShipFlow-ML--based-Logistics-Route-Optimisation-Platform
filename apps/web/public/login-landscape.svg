@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="700" viewBox="0 0 1400 700" fill="none">
+ <defs>
+  <linearGradient id="sky" x1="700" y1="0" x2="700" y2="700" gradientUnits="userSpaceOnUse"><stop stop-color="#E7F9F5"/><stop offset=".5" stop-color="#FFF9EC"/><stop offset="1" stop-color="#A8D6C4"/></linearGradient>
+  <linearGradient id="road" x1="714" y1="400" x2="731" y2="700" gradientUnits="userSpaceOnUse"><stop stop-color="#587A6A"/><stop offset="1" stop-color="#172F29"/></linearGradient>
+  <linearGradient id="truck" x1="427" y1="495" x2="627" y2="620" gradientUnits="userSpaceOnUse"><stop stop-color="#5DD321"/><stop offset=".5" stop-color="#119538"/><stop offset="1" stop-color="#075D2D"/></linearGradient>
+  <linearGradient id="mountain" x1="430" y1="300" x2="600" y2="570" gradientUnits="userSpaceOnUse"><stop stop-color="#67AF89"/><stop offset="1" stop-color="#1D6655"/></linearGradient>
+ </defs>
+ <path fill="url(#sky)" d="M0 0h1400v700H0z"/>
+ <circle cx="1112" cy="426" r="75" fill="#FFF9CC" opacity=".76"/>
+ <path d="m0 427 128-113 96 96 129-160 115 134 120-102 127 125 133-142 124 143 151-158 177 164v286H0V427Z" fill="#B6D9C8" opacity=".7"/>
+ <path d="m0 471 179-114 152 105 172-168 158 166 161-124 177 143 169-115 232 129v207H0V471Z" fill="url(#mountain)"/>
+ <path d="M0 530c176-92 307-45 456-93 141-45 286-63 438-4 191 74 324 32 506-43v310H0V530Z" fill="#22724C"/>
+ <path d="M0 589c176-80 278-65 422-78 155-14 239-77 386-42 177 43 307 72 592-1v232H0V589Z" fill="#164D3E"/>
+ <path d="M-40 663c220-90 398-111 593-106 196 6 312-49 514-57 141-5 258 8 382 45" stroke="#DBE8C2" stroke-width="46"/>
+ <path d="M-40 663c220-90 398-111 593-106 196 6 312-49 514-57 141-5 258 8 382 45" stroke="url(#road)" stroke-width="38"/>
+ <path d="M55 644c210-78 346-94 501-92 191 3 328-55 530-60 91-2 187 5 270 24" stroke="#E9F2D6" stroke-width="4" stroke-dasharray="24 30"/>
+ <path d="m149 617 67-35 21 1-46 35-42-1Zm102-44 60-25 23 1-41 27-42-3Zm100-34 57-18 22 3-37 20-42-5Z" fill="#F3FFD9" opacity=".7"/>
+ <!-- delivery truck -->
+ <path d="M380 513h179l28 26h79c15 0 25 10 25 24v56H366V531c0-10 5-18 14-18Z" fill="#F7FBF4" stroke="#D6E2D7" stroke-width="5"/>
+ <path d="M404 530h125v66H404z" fill="#fff"/>
+ <path d="M560 541h55l29 29h-84v-29Z" fill="url(#truck)"/><path d="M574 547h36l18 18h-54v-18Z" fill="#BCE8F0"/>
+ <path d="M544 522h73v92h-73z" fill="url(#truck)"/><path d="M559 537h43v25h-43z" fill="#BCE8F0"/>
+ <path d="M411 542h112v35H411z" fill="#F5FAF1"/>
+ <path d="m427 562 13-8 13 8-13 8-13-8Z" fill="#45B52C"/><text x="460" y="567" fill="#102521" font-family="Arial,sans-serif" font-weight="700" font-size="15">ShipFlow</text>
+ <path d="M381 587h265" stroke="#0A7D35" stroke-width="5"/>
+ <circle cx="430" cy="615" r="25" fill="#142A27"/><circle cx="430" cy="615" r="11" fill="#CBD9CE"/>
+ <circle cx="585" cy="615" r="25" fill="#142A27"/><circle cx="585" cy="615" r="11" fill="#CBD9CE"/>
+ <circle cx="642" cy="615" r="25" fill="#142A27"/><circle cx="642" cy="615" r="11" fill="#CBD9CE"/>
+ <path d="M0 670c216-35 329-30 513 0 257 42 481 36 887-48v78H0v-30Z" fill="#0D472F" opacity=".46"/>
+</svg>

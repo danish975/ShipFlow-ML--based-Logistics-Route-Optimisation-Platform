@@ -1,11 +1,23 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { randomInt } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { ShipmentStatus, EventType } from '../enums';
+import { CreateShipmentDto } from './dto/create-shipment.dto';
 
 @Injectable()
 export class ShipmentsService {
   constructor(private prisma: PrismaService) {}
+
+  /** Server-generated, human-friendly number, e.g. SHP-482913. */
+  private async generateShipmentNumber(): Promise<string> {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const candidate = `SHP-${randomInt(100000, 1000000)}`;
+      const exists = await this.prisma.shipment.findUnique({ where: { shipmentNumber: candidate } });
+      if (!exists) return candidate;
+    }
+    throw new ConflictException('Could not allocate a shipment number, please retry');
+  }
 
   async findAll(organizationId: string) {
     return this.prisma.shipment.findMany({
@@ -37,20 +49,26 @@ export class ShipmentsService {
     return shipment;
   }
 
-  async create(data: any, organizationId: string, userId: string) {
-    const existing = await this.prisma.shipment.findUnique({
-      where: { shipmentNumber: data.shipmentNumber }
-    });
-    
-    if (existing) {
-      throw new ConflictException('Shipment with this number already exists');
+  async create(data: CreateShipmentDto, organizationId: string, userId: string) {
+    if (
+      data.deliveryWindowStart &&
+      data.deliveryWindowEnd &&
+      new Date(data.deliveryWindowEnd) <= new Date(data.deliveryWindowStart)
+    ) {
+      throw new BadRequestException('deliveryWindowEnd must be after deliveryWindowStart');
     }
-    
+
+    const shipmentNumber = await this.generateShipmentNumber();
+
     // Use transaction to create shipment and event
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const shipment = await tx.shipment.create({
         data: {
           ...data,
+          deliveryWindowStart: data.deliveryWindowStart ? new Date(data.deliveryWindowStart) : undefined,
+          deliveryWindowEnd: data.deliveryWindowEnd ? new Date(data.deliveryWindowEnd) : undefined,
+          shipmentNumber,
+          status: ShipmentStatus.CREATED,
           organizationId,
         },
       });

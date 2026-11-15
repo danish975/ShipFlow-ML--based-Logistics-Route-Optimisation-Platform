@@ -28,8 +28,10 @@ export class AuditInterceptor implements NestInterceptor {
         // Log mutating requests (POST, PUT, PATCH, DELETE) to the database
         if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && user) {
           // Avoid logging sensitive fields
-          const sanitizedBody = { ...body };
-          if (sanitizedBody.password) delete sanitizedBody.password;
+          const sanitizedBody: Record<string, unknown> = { ...(body ?? {}) };
+          for (const key of ['password', 'oldPassword', 'newPassword', 'refreshToken', 'token']) {
+            if (key in sanitizedBody) sanitizedBody[key] = '[REDACTED]';
+          }
 
           try {
             // Note: In a high-throughput system, you'd send this to a queue or separate logging service
@@ -39,8 +41,10 @@ export class AuditInterceptor implements NestInterceptor {
                 organizationId: user.organizationId,
                 action: method,
                 resource: url,
-                resourceId: 'N/A', // Cannot determine generic resource ID from interceptor without parsing URL
-                metadata: sanitizedBody,
+                // Created/updated records usually come back with their id.
+                resourceId: typeof response?.id === 'string' ? response.id : 'N/A',
+                // The column is a string (SQLite has no JSON type).
+                metadata: JSON.stringify(sanitizedBody),
                 ipAddress: ip || 'unknown',
               }
             });

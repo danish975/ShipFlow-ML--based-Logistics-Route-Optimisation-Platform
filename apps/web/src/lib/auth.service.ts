@@ -19,6 +19,16 @@ export const AuthService = {
     }
   },
 
+  /** Renews the session from the refresh cookie. Resolves true on success. */
+  async refresh(): Promise<boolean> {
+    try {
+      const res = await api.post('/api/v1/auth/refresh', {});
+      return res.data?.success === true;
+    } catch {
+      return false;
+    }
+  },
+
   async getProfile() {
     const res = await api.get('/api/v1/auth/profile');
     return res.data;

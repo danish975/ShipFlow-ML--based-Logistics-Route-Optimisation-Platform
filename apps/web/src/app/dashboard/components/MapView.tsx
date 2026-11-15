@@ -3,126 +3,148 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import type { FleetVehicle } from './LiveMap';
+import type { FleetVehicle, Hub } from './fleet-data';
+import { STATUS_META } from './fleet-data';
 
 interface MapViewProps {
   fleet: FleetVehicle[];
+  hubs: Hub[];
   selectedVehicle: FleetVehicle | null;
   onSelectVehicle: (vehicle: FleetVehicle | null) => void;
 }
 
-// Custom marker icons based on vehicle status
-function createVehicleIcon(status: string): L.DivIcon {
-  const colors: Record<string, string> = {
-    active: '#10b981',   // emerald
-    delayed: '#f59e0b',  // amber
-    idle: '#64748b',     // slate
-  };
-  const color = colors[status] || colors.idle;
-  
+const ARROW_PATH = 'M12 2 L20 21 L12 16.5 L4 21 Z';
+const SQUARE_PATH = 'M7 7 H17 V17 H7 Z';
+
+function createVehicleIcon(vehicle: FleetVehicle, selected: boolean): L.DivIcon {
+  const { color } = STATUS_META[vehicle.status];
+  // Stationary vehicles get a square glyph; moving ones an arrow rotated to
+  // their heading — shape is a second channel alongside color.
+  const glyph =
+    vehicle.status === 'stationary'
+      ? `<path d="${SQUARE_PATH}" fill="white"/>`
+      : `<path d="${ARROW_PATH}" fill="white" transform="rotate(${vehicle.heading} 12 12)"/>`;
+
   return L.divIcon({
-    className: 'custom-vehicle-marker',
+    className: 'sf-vehicle-marker',
     html: `
-      <div style="
-        width: 28px; height: 28px;
-        background: ${color};
-        border: 2px solid white;
-        border-radius: 50%;
-        box-shadow: 0 0 12px ${color}80, 0 2px 8px rgba(0,0,0,0.4);
-        display: flex; align-items: center; justify-content: center;
-        cursor: pointer;
-        transition: transform 0.2s;
-      ">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-          <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
-        </svg>
-      </div>
-    `,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
+      <div class="sf-marker ${selected ? 'is-selected' : ''}">
+        <div class="sf-marker-label">${vehicle.vehicleNumber}</div>
+        <div class="sf-marker-dot" style="background:${color}; box-shadow: 0 0 0 4px ${color}33, 0 2px 6px rgba(0,0,0,.25)">
+          <svg width="13" height="13" viewBox="0 0 24 24">${glyph}</svg>
+        </div>
+      </div>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
   });
 }
 
-export default function MapView({ fleet, selectedVehicle, onSelectVehicle }: MapViewProps) {
+function createHubIcon(hub: Hub): L.DivIcon {
+  return L.divIcon({
+    className: 'sf-hub-marker',
+    html: `<div class="sf-hub"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M8 21v-7h8v7"/></svg>${hub.name}</div>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+}
+
+export default function MapView({ fleet, hubs, selectedVehicle, onSelectVehicle }: MapViewProps) {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
+  const onSelectRef = useRef(onSelectVehicle);
+  useEffect(() => {
+    onSelectRef.current = onSelectVehicle;
+  }, [onSelectVehicle]);
 
   // Initialize map once
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
     const map = L.map(containerRef.current, {
-      center: [28.55, 77.15], // Delhi NCR center
+      center: [28.56, 77.2], // Delhi NCR
       zoom: 11,
       zoomControl: false,
       attributionControl: false,
+      zoomSnap: 0.25,
     });
 
-    // Dark tile layer
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Esri World Topo: light, soft basemap that works without an API key.
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 19,
     }).addTo(map);
 
-    // Zoom control in bottom-right
     L.control.zoom({ position: 'bottomright' }).addTo(map);
+    L.control.attribution({ position: 'bottomleft', prefix: 'Tiles © Esri' }).addTo(map);
 
-    // Attribution in bottom-left
-    L.control.attribution({ position: 'bottomleft', prefix: '© OpenStreetMap' }).addTo(map);
+    hubs.forEach(h => {
+      L.marker([h.lat, h.lng], { icon: createHubIcon(h), interactive: false, zIndexOffset: -100 }).addTo(map);
+    });
 
     mapRef.current = map;
+    const markers = markersRef.current;
+
+    // Leaflet measures its container on init; re-measure once layout settles,
+    // then frame every vehicle and hub with room for the marker labels.
+    const t = setTimeout(() => {
+      map.invalidateSize();
+      const points: L.LatLngExpression[] = [
+        ...Array.from(markers.values()).map(m => m.getLatLng()),
+        ...hubs.map(h => [h.lat, h.lng] as L.LatLngTuple),
+      ];
+      if (points.length) {
+        map.fitBounds(L.latLngBounds(points), { paddingTopLeft: [50, 70], paddingBottomRight: [70, 50], animate: false });
+      }
+    }, 200);
 
     return () => {
+      clearTimeout(t);
       map.remove();
       mapRef.current = null;
+      markers.clear();
     };
-  }, []);
+  }, [hubs]);
 
-  // Update markers when fleet changes
+  // Sync markers with the (possibly filtered) fleet
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    fleet.forEach((vehicle) => {
+    const ids = new Set(fleet.map(v => v.id));
+    markersRef.current.forEach((marker, id) => {
+      if (!ids.has(id)) {
+        marker.remove();
+        markersRef.current.delete(id);
+      }
+    });
+
+    fleet.forEach(vehicle => {
+      const selected = selectedVehicle?.id === vehicle.id;
+      const icon = createVehicleIcon(vehicle, selected);
       const existing = markersRef.current.get(vehicle.id);
-      
+
       if (existing) {
-        // Smoothly move existing marker
         existing.setLatLng([vehicle.lat, vehicle.lng]);
-        existing.setIcon(createVehicleIcon(vehicle.status));
+        existing.setIcon(icon);
+        existing.off('click');
+        existing.on('click', () => onSelectRef.current(vehicle));
       } else {
-        // Create new marker
-        const marker = L.marker([vehicle.lat, vehicle.lng], {
-          icon: createVehicleIcon(vehicle.status),
-        });
-
-        marker.bindTooltip(
-          `<div style="font-size:11px;line-height:1.4">
-            <strong>${vehicle.vehicleNumber}</strong><br/>
-            ${vehicle.driverName}<br/>
-            <span style="color:#94a3b8">${vehicle.status.toUpperCase()} · ${vehicle.speed} km/h</span>
-          </div>`,
-          { direction: 'top', offset: [0, -16], className: 'vehicle-tooltip' }
-        );
-
-        marker.on('click', () => {
-          onSelectVehicle(vehicle);
-        });
-
+        const marker = L.marker([vehicle.lat, vehicle.lng], { icon });
+        marker.on('click', () => onSelectRef.current(vehicle));
         marker.addTo(map);
         markersRef.current.set(vehicle.id, marker);
       }
     });
-  }, [fleet, onSelectVehicle]);
+  }, [fleet, selectedVehicle]);
 
   // Fly to selected vehicle
   useEffect(() => {
     if (selectedVehicle && mapRef.current) {
-      mapRef.current.flyTo([selectedVehicle.lat, selectedVehicle.lng], 14, { duration: 0.8 });
+      mapRef.current.flyTo([selectedVehicle.lat, selectedVehicle.lng], 13, { duration: 0.8 });
     }
-  }, [selectedVehicle]);
+    // Only when the selection changes, not on every position tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedVehicle?.id]);
 
-  return (
-    <div ref={containerRef} className="w-full h-full" style={{ minHeight: '100%' }} />
-  );
+  return <div ref={containerRef} className="w-full h-full" style={{ minHeight: '100%' }} />;
 }

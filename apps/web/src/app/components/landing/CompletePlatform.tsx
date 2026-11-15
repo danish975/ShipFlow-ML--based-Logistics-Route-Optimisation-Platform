@@ -1,42 +1,73 @@
+import Link from 'next/link';
+import { ArrowRight, BarChart3, Boxes, Check, Package, Route as RouteIcon, Truck } from 'lucide-react';
+import { Card, IconChip, Section, SectionHeading } from './ui';
+
+const modules = [
+  {
+    icon: Package,
+    title: 'Shipment operations',
+    text: 'Create and manage shipments end to end.',
+    features: ['Auto-numbered shipments', 'Status timeline & events', 'Delivery windows & notes'],
+    href: '/dashboard/shipments',
+  },
+  {
+    icon: Truck,
+    title: 'Fleet management',
+    text: 'Manage vehicles, drivers and capacity.',
+    features: ['Live load vs capacity', 'Driver directory & ratings', 'Maintenance alerts'],
+    href: '/dashboard/fleet',
+  },
+  {
+    icon: RouteIcon,
+    title: 'Route intelligence',
+    text: 'Optimise routes and reroute dynamically.',
+    features: ['Multi-stop optimisation', 'Current vs optimised plans', 'Distance, time & cost savings'],
+    href: '/dashboard/routes',
+  },
+  {
+    icon: BarChart3,
+    title: 'Operations intelligence',
+    text: 'Monitor risk, ETA, performance and exceptions.',
+    features: ['ML delay-risk alerts', 'On-time performance', 'Model accuracy tracking'],
+    href: '/dashboard/analytics',
+  },
+];
+
 export default function CompletePlatform() {
   return (
-    <section className="py-32 bg-[#F7F7F5] border-y border-[#E5E5E5]">
-      <div className="max-w-[1280px] mx-auto px-6">
-        
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <h2 className="text-[clamp(36px,4vw,56px)] font-bold text-[#0A0A0A] leading-[1.1] mb-6 tracking-tight">
-            One platform for the entire delivery operation
-          </h2>
-          <p className="text-[20px] text-[#5F6368] leading-[1.6]">
-            ShipFlow connects shipment management, fleet operations, route intelligence, real-time tracking, and analytics in one platform.
-          </p>
-        </div>
+    <Section id="solutions">
+      <SectionHeading
+        align="center"
+        kicker="Solutions"
+        kickerIcon={Boxes}
+        title="One platform for the"
+        highlight="entire delivery operation."
+        description="ShipFlow connects shipment management, fleet operations, route intelligence, real-time tracking and analytics in one place."
+      />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          <div className="bg-[#FFFFFF] border border-[#E5E5E5] rounded-[20px] p-8 shadow-sm">
-            <h3 className="text-xl font-bold text-[#0A0A0A] mb-3">Shipment Operations</h3>
-            <p className="text-[#5F6368] text-lg">Create and manage shipments.</p>
-          </div>
-          
-          <div className="bg-[#FFFFFF] border border-[#E5E5E5] rounded-[20px] p-8 shadow-sm">
-            <h3 className="text-xl font-bold text-[#0A0A0A] mb-3">Fleet Management</h3>
-            <p className="text-[#5F6368] text-lg">Manage vehicles and drivers.</p>
-          </div>
-          
-          <div className="bg-[#FFFFFF] border border-[#E5E5E5] rounded-[20px] p-8 shadow-sm">
-            <h3 className="text-xl font-bold text-[#0A0A0A] mb-3">Route Intelligence</h3>
-            <p className="text-[#5F6368] text-lg">Optimize routes and dynamically reroute.</p>
-          </div>
-          
-          <div className="bg-[#FFFFFF] border border-[#E5E5E5] rounded-[20px] p-8 shadow-sm">
-            <h3 className="text-xl font-bold text-[#0A0A0A] mb-3">Operations Intelligence</h3>
-            <p className="text-[#5F6368] text-lg">Monitor risk, ETA, performance, and exceptions.</p>
-          </div>
-
-        </div>
-
+      <div className="mt-12 grid gap-5 md:grid-cols-2">
+        {modules.map(m => (
+          <Card key={m.title} className="group flex flex-col p-6 transition-all hover:border-[#BFE3C8] hover:shadow-[0_18px_40px_-12px_rgba(20,110,50,0.22)] sm:p-7">
+            <div className="flex items-start gap-4">
+              <IconChip icon={m.icon} />
+              <div>
+                <h3 className="text-[18px] font-bold tracking-[-0.01em] text-[#101C20]">{m.title}</h3>
+                <p className="mt-1 text-[14.5px] text-[#59676A]">{m.text}</p>
+              </div>
+            </div>
+            <ul className="mt-5 grid gap-2.5 sm:grid-cols-3 md:grid-cols-1 xl:grid-cols-3">
+              {m.features.map(f => (
+                <li key={f} className="flex items-start gap-2 text-[13.5px] font-medium text-[#1F2D26]">
+                  <Check size={15} className="mt-0.5 shrink-0 text-[#087D31]" strokeWidth={2.5} /> {f}
+                </li>
+              ))}
+            </ul>
+            <Link href={m.href} className="mt-6 inline-flex items-center gap-1.5 self-start text-[14px] font-semibold text-[#087D31] hover:text-[#065F25]">
+              Open in dashboard <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </Card>
+        ))}
       </div>
-    </section>
+    </Section>
   );
 }

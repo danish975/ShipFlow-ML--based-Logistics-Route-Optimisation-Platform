@@ -49,8 +49,19 @@ api.interceptors.response.use(
         });
     }
 
-    // Global error handler
-    console.error('API Error:', error.response?.data || error.message);
+    // Callers surface errors in the UI (e.g. "Invalid email or password").
+    // Log a readable one-liner as a warning: console.error would make the
+    // Next.js dev overlay treat expected 4xx responses as crashes.
+    if (process.env.NODE_ENV !== 'production') {
+      const status = error.response?.status;
+      const data = error.response?.data as { message?: string | string[] } | undefined;
+      const message = Array.isArray(data?.message) ? data.message.join('; ') : data?.message;
+      console.warn(
+        `[api] ${String(originalRequest?.method || '').toUpperCase()} ${requestUrl} → ${
+          status ? `${status} ${message || ''}` : `network error (${error.message}) — is the API running?`
+        }`.trim(),
+      );
+    }
     return Promise.reject(error);
   }
 );

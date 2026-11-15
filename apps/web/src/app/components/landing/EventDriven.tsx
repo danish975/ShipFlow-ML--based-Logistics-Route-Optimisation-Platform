@@ -1,53 +1,93 @@
-import { ArrowDown } from 'lucide-react';
+import {
+  CircleCheck,
+  Clock,
+  MapPin,
+  Network,
+  Package,
+  RefreshCw,
+  Send,
+  TriangleAlert,
+  Truck,
+  UserCheck,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { Card, Section, SectionHeading, cx } from './ui';
 
-const flowEvents = [
-  'Shipment Created',
-  'Vehicle Assigned',
-  'Shipment Dispatched',
-  'Location Updated',
-  'ETA Recalculated',
-  'Delay Detected',
-  'Route Optimized',
-  'Driver Updated',
-  'Delivery Completed'
+const events: Array<{ time: string; label: string; icon: LucideIcon; tone?: 'alert' | 'action' }> = [
+  { time: '09:10', label: 'Shipment created', icon: Package },
+  { time: '09:24', label: 'Vehicle assigned', icon: Truck },
+  { time: '10:02', label: 'Shipment dispatched', icon: Send },
+  { time: '11:40', label: 'Location updated', icon: MapPin },
+  { time: '12:05', label: 'ETA recalculated', icon: Clock },
+  { time: '12:18', label: 'Delay detected', icon: TriangleAlert, tone: 'alert' },
+  { time: '12:22', label: 'Route optimised', icon: RefreshCw, tone: 'action' },
+  { time: '12:23', label: 'Driver updated', icon: UserCheck },
+  { time: '16:31', label: 'Delivery completed', icon: CircleCheck },
+];
+
+const stack = [
+  { layer: 'API & data', items: ['NestJS', 'PostgreSQL'] },
+  { layer: 'Real-time', items: ['Socket.IO', 'Next.js'] },
+  { layer: 'Machine learning', items: ['FastAPI', 'XGBoost'] },
+  { layer: 'Queues & events', items: ['Redis', 'BullMQ'] },
 ];
 
 export default function EventDriven() {
   return (
-    <section className="py-32 bg-[#F7F7F5] border-y border-[#E5E5E5]">
-      <div className="max-w-[800px] mx-auto px-6 text-center">
-        
-        <h2 className="text-[clamp(36px,4vw,56px)] font-bold text-[#0A0A0A] leading-[1.1] mb-6 tracking-tight">
-          Every operational event, connected
-        </h2>
-        <p className="text-[20px] text-[#5F6368] leading-[1.6] mb-16">
-          ShipFlow processes shipment, tracking, routing, and delivery events asynchronously so operational workflows can respond in real time.
-        </p>
-
-        <div className="relative max-w-sm mx-auto">
-          {/* Tech labels */}
-          <div className="absolute -left-24 top-[10%] text-[10px] font-bold text-[#5F6368] uppercase tracking-widest text-right">NestJS<br/>PostgreSQL</div>
-          <div className="absolute -right-24 top-[30%] text-[10px] font-bold text-[#5F6368] uppercase tracking-widest text-left">Socket.IO<br/>Next.js</div>
-          <div className="absolute -left-24 top-[50%] text-[10px] font-bold text-[#5F6368] uppercase tracking-widest text-right">FastAPI<br/>XGBoost</div>
-          <div className="absolute -right-24 top-[70%] text-[10px] font-bold text-[#5F6368] uppercase tracking-widest text-left">Redis<br/>BullMQ</div>
-
-          <div className="flex flex-col items-center">
-            {flowEvents.map((event, i) => (
-              <div key={i} className="flex flex-col items-center">
-                <div className={`px-6 py-3 rounded-lg border border-[#E5E5E5] text-sm font-semibold transition-colors bg-[#FFFFFF] ${
-                  i === 5 || i === 6 ? 'text-[#0A0A0A] shadow-sm border-[#0A0A0A]' : 'text-[#5F6368]'
-                }`}>
-                  {event}
+    <Section>
+      <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
+        <div className="lg:sticky lg:top-28">
+          <SectionHeading
+            kicker="Event-driven"
+            kickerIcon={Network}
+            title="Every operational event,"
+            highlight="connected."
+            description="ShipFlow processes shipment, tracking, routing and delivery events asynchronously, so workflows react the moment something changes."
+          />
+          <div className="mt-8 grid grid-cols-2 gap-3">
+            {stack.map(s => (
+              <div key={s.layer} className="rounded-2xl border border-[#E3ECE6] bg-[#F7FAF8] p-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#6B7A72]">{s.layer}</p>
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {s.items.map(i => (
+                    <span key={i} className="rounded-md border border-[#DCE6DF] bg-white px-2 py-1 text-[12.5px] font-semibold text-[#1F2D26]">{i}</span>
+                  ))}
                 </div>
-                {i < flowEvents.length - 1 && (
-                  <div className="h-6 w-px bg-[#E5E5E5] my-1" />
-                )}
               </div>
             ))}
           </div>
         </div>
 
+        <Card className="p-6 sm:p-8">
+          <div className="mb-6 flex items-center justify-between">
+            <p className="text-[14px] font-bold text-[#101C20]">SHP-2031 · event stream</p>
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#087D31]">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-[#16A34A]" /> Live
+            </span>
+          </div>
+          <ol>
+            {events.map((e, i) => (
+              <li key={e.label} className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span
+                    className={cx(
+                      'grid h-9 w-9 shrink-0 place-items-center rounded-full',
+                      e.tone === 'alert' ? 'bg-amber-50 text-amber-600 ring-1 ring-amber-200' : e.tone === 'action' ? 'bg-[#087D31] text-white' : 'bg-[#E8F8E8] text-[#078F33]',
+                    )}
+                  >
+                    <e.icon size={16} />
+                  </span>
+                  {i < events.length - 1 && <span className="my-1 w-px flex-1 bg-[#E3ECE6]" />}
+                </div>
+                <div className={cx('flex flex-1 items-center justify-between gap-3 pb-4', i < events.length - 1 && 'min-h-[52px]')}>
+                  <p className={cx('pt-2 text-[14.5px] font-semibold', e.tone === 'alert' ? 'text-amber-700' : 'text-[#101C20]')}>{e.label}</p>
+                  <span className="pt-2 text-[12px] tabular-nums text-[#9AA8A0]">{e.time}</span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </Card>
       </div>
-    </section>
+    </Section>
   );
 }

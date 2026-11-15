@@ -1,48 +1,71 @@
+import { CircleCheck, PlayCircle, RefreshCw, ShieldAlert, TrafficCone } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { Card, Section, SectionHeading, cx } from './ui';
+
+const scenario = [
+  { value: '100', label: 'Shipments' },
+  { value: '20', label: 'Vehicles' },
+  { value: '6', label: 'Delivery windows' },
+  { value: 'Live', label: 'Tracking' },
+];
+
+const timeline: Array<{ icon: LucideIcon; step: string; text: string; tone: 'red' | 'amber' | 'green' | 'done' }> = [
+  { icon: TrafficCone, step: 'Problem', text: 'A traffic disruption hits multiple routes at once.', tone: 'red' },
+  { icon: ShieldAlert, step: 'ShipFlow detected', text: 'Delay risk rises across 14 affected shipments.', tone: 'amber' },
+  { icon: RefreshCw, step: 'Action', text: 'Route optimisation generates faster alternatives.', tone: 'green' },
+  { icon: CircleCheck, step: 'Result', text: 'Updated routes are pushed to affected vehicles: 92% stay on time.', tone: 'done' },
+];
+
+const toneClass = {
+  red: 'bg-red-50 text-red-600 ring-red-200',
+  amber: 'bg-amber-50 text-amber-600 ring-amber-200',
+  green: 'bg-[#E8F8E8] text-[#078F33] ring-[#BFE3C8]',
+  done: 'bg-[#087D31] text-white ring-[#087D31]',
+};
+
 export default function InteractiveDemo() {
   return (
-    <section className="py-32 bg-[#FFFFFF]">
-      <div className="max-w-[1280px] mx-auto px-6">
-        <div className="text-center mb-16">
-          <p className="text-sm font-semibold text-[#5F6368] mb-4 uppercase tracking-widest">Interactive demonstration</p>
-          <h2 className="text-[clamp(36px,4vw,56px)] font-bold text-[#0A0A0A] leading-[1.1] tracking-tight">
-            See ShipFlow in action
-          </h2>
+    <Section tone="tint">
+      <SectionHeading
+        align="center"
+        kicker="Interactive demonstration"
+        kickerIcon={PlayCircle}
+        title="See ShipFlow"
+        highlight="in action."
+        description="A high-volume delivery day, and how ShipFlow keeps it on schedule when things go wrong."
+      />
+
+      <Card className="mt-12 grid overflow-hidden lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="border-b border-[#EDF2EE] bg-gradient-to-br from-[#F3FBF5] to-white p-8 lg:border-b-0 lg:border-r lg:p-10">
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#087D31]">Scenario</p>
+          <h3 className="mt-2 text-[22px] font-extrabold tracking-[-0.02em] text-[#101C20]">High-volume delivery operation</h3>
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            {scenario.map(s => (
+              <div key={s.label} className="rounded-2xl border border-[#E3ECE6] bg-white p-4">
+                <p className="text-[26px] font-extrabold tracking-[-0.03em] text-[#101C20]">{s.value}</p>
+                <p className="text-[13px] font-medium text-[#6B7A72]">{s.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="bg-[#F7F7F5] border border-[#E5E5E5] rounded-[24px] overflow-hidden grid grid-cols-1 lg:grid-cols-2">
-          
-          <div className="p-12 lg:p-16 border-b lg:border-b-0 lg:border-r border-[#E5E5E5]">
-            <h3 className="text-xl font-bold text-[#0A0A0A] mb-8">Scenario: High-volume delivery operation</h3>
-            
-            <ul className="space-y-4 mb-12 text-[#5F6368] text-lg">
-              <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-[#0A0A0A]" /> 100 shipments</li>
-              <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-[#0A0A0A]" /> 20 vehicles</li>
-              <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-[#0A0A0A]" /> Multiple delivery windows</li>
-              <li className="flex items-center gap-3"><span className="w-1.5 h-1.5 rounded-full bg-[#0A0A0A]" /> Real-time tracking</li>
-            </ul>
-          </div>
-          
-          <div className="p-12 lg:p-16 space-y-8">
-            <div>
-              <h4 className="text-sm font-bold text-[#5F6368] uppercase tracking-widest mb-2">Problem</h4>
-              <p className="text-[#0A0A0A] text-lg font-medium">Traffic disruption affected multiple routes.</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-[#5F6368] uppercase tracking-widest mb-2">ShipFlow detected</h4>
-              <p className="text-[#0A0A0A] text-lg font-medium">Delay risk across affected shipments.</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-[#5F6368] uppercase tracking-widest mb-2">Action</h4>
-              <p className="text-[#0A0A0A] text-lg font-medium">Route optimization generated alternatives.</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-[#5F6368] uppercase tracking-widest mb-2">Result</h4>
-              <p className="text-[#2563EB] text-lg font-medium">Updated routes were pushed to affected vehicles.</p>
-            </div>
-          </div>
-          
-        </div>
-      </div>
-    </section>
+        <ol className="p-8 lg:p-10">
+          {timeline.map((t, i) => (
+            <li key={t.step} className="flex gap-4">
+              <div className="flex flex-col items-center">
+                <span className={cx('grid h-10 w-10 shrink-0 place-items-center rounded-full ring-1', toneClass[t.tone])}>
+                  <t.icon size={17} />
+                </span>
+                {i < timeline.length - 1 && <span className="my-1 w-px flex-1 bg-[#E3ECE6]" />}
+              </div>
+              <div className={cx('pt-1.5', i < timeline.length - 1 && 'pb-6')}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#6B7A72]">{t.step}</p>
+                <p className={cx('mt-1 text-[15.5px] font-semibold', t.tone === 'done' ? 'text-[#087D31]' : 'text-[#101C20]')}>{t.text}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </Card>
+    </Section>
   );
 }

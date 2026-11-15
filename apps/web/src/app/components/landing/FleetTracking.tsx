@@ -1,58 +1,104 @@
+'use client';
+
+import { useState } from 'react';
+import { MapPin, Truck } from 'lucide-react';
+import { Card, MapBackdrop, Section, SectionHeading, cx } from './ui';
+
+type Status = 'Active' | 'Delayed' | 'High risk' | 'Idle';
+const FILTERS = ['All', 'Active', 'Delayed', 'High risk', 'Idle'] as const;
+
+const COLORS: Record<Status, string> = {
+  Active: '#15803d',
+  Delayed: '#d97706',
+  'High risk': '#dc2626',
+  Idle: '#7c3aed',
+};
+
+const fleet: Array<{ id: string; driver: string; status: Status; x: number; y: number; eta: string }> = [
+  { id: 'HR38X1234', driver: 'Ramesh Kumar', status: 'Active', x: 18, y: 64, eta: '14:32' },
+  { id: 'DL1LV9999', driver: 'Amit Patel', status: 'High risk', x: 44, y: 36, eta: '16:45' },
+  { id: 'UP16Z4321', driver: 'Vikram Yadav', status: 'Active', x: 70, y: 28, eta: '15:10' },
+  { id: 'HR26YZ1111', driver: 'Rahul Gupta', status: 'Delayed', x: 58, y: 66, eta: '15:20' },
+  { id: 'DL3CAB2020', driver: 'Deepak Sharma', status: 'Idle', x: 82, y: 58, eta: '—' },
+  { id: 'HR38X5678', driver: 'Suresh Singh', status: 'Active', x: 30, y: 30, eta: '15:45' },
+];
+
 export default function FleetTracking() {
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]>('All');
+  const [selected, setSelected] = useState('DL1LV9999');
+
+  const visible = fleet.filter(v => filter === 'All' || v.status === filter);
+  const sel = visible.find(v => v.id === selected) ?? visible[0];
+
   return (
-    <section className="py-32 bg-[#FFFFFF]">
-      <div className="max-w-[1280px] mx-auto px-6">
-        <h2 className="text-[clamp(36px,4vw,56px)] font-bold text-[#0A0A0A] leading-[1.1] mb-12 tracking-tight text-center">
-          One view of your entire fleet
-        </h2>
+    <Section tone="tint">
+      <SectionHeading
+        align="center"
+        kicker="Fleet tracking"
+        kickerIcon={MapPin}
+        title="One view of your"
+        highlight="entire fleet."
+        description="Filter by status, spot delays instantly and drill into any vehicle without leaving the map."
+      />
 
-        {/* Filters */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {['All', 'Active', 'Delayed', 'High Risk', 'Idle'].map((filter, i) => (
-            <button 
-              key={filter}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${i === 0 ? 'bg-[#0A0A0A] text-[#FFFFFF] border-[#0A0A0A]' : 'bg-[#FFFFFF] text-[#5F6368] border-[#E5E5E5] hover:border-[#0A0A0A] hover:text-[#0A0A0A]'}`}
+      <div className="mt-8 flex flex-wrap justify-center gap-2">
+        {FILTERS.map(f => {
+          const count = f === 'All' ? fleet.length : fleet.filter(v => v.status === f).length;
+          return (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              aria-pressed={filter === f}
+              className={cx(
+                'inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[13.5px] font-semibold transition-colors',
+                filter === f ? 'border-[#087D31] bg-[#087D31] text-white' : 'border-[#DCE6DF] bg-white text-[#3B4A42] hover:border-[#087D31] hover:text-[#087D31]',
+              )}
             >
-              {filter}
+              {f !== 'All' && <span className="h-2 w-2 rounded-full" style={{ background: filter === f ? '#fff' : COLORS[f] }} />}
+              {f}
+              <span className={cx('text-[11px]', filter === f ? 'text-white/80' : 'text-[#9AA8A0]')}>{count}</span>
             </button>
-          ))}
-        </div>
-
-        {/* Map visualization */}
-        <div className="bg-[#F7F7F5] border border-[#E5E5E5] rounded-[24px] shadow-[0_4px_20px_rgba(0,0,0,0.04)] h-[600px] relative overflow-hidden flex flex-col items-center justify-center">
-          <div className="absolute inset-0 opacity-60" style={{ backgroundImage: 'radial-gradient(#E5E5E5 2px, transparent 2px)', backgroundSize: '32px 32px' }} />
-          
-          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M 10 50 Q 30 20 50 50 T 90 30" fill="none" stroke="#2563EB" strokeWidth="1" strokeDasharray="4 4" className="opacity-40" />
-            <path d="M 20 80 Q 40 90 70 60 T 90 80" fill="none" stroke="#2563EB" strokeWidth="1" strokeDasharray="4 4" className="opacity-40" />
-          </svg>
-
-          {/* Dots */}
-          <div className="absolute top-[40%] left-[30%] w-3 h-3 bg-[#0A0A0A] rounded-full border-2 border-[#FFFFFF] shadow-sm" />
-          <div className="absolute top-[60%] left-[70%] w-3 h-3 bg-[#0A0A0A] rounded-full border-2 border-[#FFFFFF] shadow-sm" />
-          <div className="absolute top-[70%] left-[20%] w-3 h-3 bg-[#10B981] rounded-full border-2 border-[#FFFFFF] shadow-sm" />
-          <div className="absolute top-[30%] left-[80%] w-3 h-3 bg-[#EF4444] rounded-full border-2 border-[#FFFFFF] shadow-sm animate-pulse" />
-          
-          {/* Active Popup */}
-          <div className="absolute top-[28%] left-[81%] bg-[#FFFFFF] rounded-xl border border-[#E5E5E5] shadow-lg p-4 w-48 z-10">
-            <div className="flex justify-between items-start mb-2">
-              <span className="font-bold text-[#0A0A0A] text-sm">VH-102</span>
-              <span className="w-2 h-2 rounded-full bg-[#EF4444]" />
-            </div>
-            <div className="space-y-1 text-xs">
-              <div className="flex justify-between">
-                <span className="text-[#5F6368]">Driver</span>
-                <span className="font-medium text-[#0A0A0A]">J. Smith</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#5F6368]">Status</span>
-                <span className="font-medium text-[#EF4444]">Delayed</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
+          );
+        })}
       </div>
-    </section>
+
+      <Card className="relative mt-8 h-[480px] overflow-hidden">
+        <MapBackdrop />
+        {visible.map(v => (
+          <button
+            key={v.id}
+            onClick={() => setSelected(v.id)}
+            className="absolute -translate-x-1/2 -translate-y-1/2"
+            style={{ left: `${v.x}%`, top: `${v.y}%` }}
+            aria-label={`${v.id}, ${v.status}`}
+          >
+            {v.status === 'High risk' && <span className="absolute inset-0 animate-ping rounded-full bg-red-500/40" />}
+            <span
+              className={cx('relative grid h-9 w-9 place-items-center rounded-full border-[3px] border-white text-white shadow-lg transition-transform', sel?.id === v.id && 'scale-125')}
+              style={{ background: COLORS[v.status] }}
+            >
+              <Truck size={15} />
+            </span>
+          </button>
+        ))}
+
+        {sel && (
+          <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-[#E3ECE6] bg-white p-4 shadow-xl sm:bottom-auto sm:left-auto sm:top-4 sm:w-60">
+            <div className="flex items-center justify-between">
+              <span className="text-[14px] font-bold text-[#101C20]">{sel.id}</span>
+              <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold text-white" style={{ background: COLORS[sel.status] }}>{sel.status}</span>
+            </div>
+            <dl className="mt-3 space-y-1.5 text-[12.5px]">
+              <div className="flex justify-between"><dt className="text-[#6B7A72]">Driver</dt><dd className="font-semibold text-[#101C20]">{sel.driver}</dd></div>
+              <div className="flex justify-between"><dt className="text-[#6B7A72]">ETA</dt><dd className="font-semibold text-[#101C20]">{sel.eta}</dd></div>
+            </dl>
+          </div>
+        )}
+
+        {visible.length === 0 && (
+          <div className="absolute inset-0 grid place-items-center text-[14px] text-[#6B7A72]">No vehicles in this state right now.</div>
+        )}
+      </Card>
+    </Section>
   );
 }

@@ -1,17 +1,33 @@
+import { BarChart3, Clock, MapPin, Network, Route, Truck } from 'lucide-react';
+import { container } from './ui';
+
+const capabilities = [
+  { icon: MapPin, label: 'Real-time tracking' },
+  { icon: Clock, label: 'Predictive ETA' },
+  { icon: Route, label: 'Dynamic routing' },
+  { icon: Truck, label: 'Fleet intelligence' },
+  { icon: Network, label: 'Event-driven processing' },
+  { icon: BarChart3, label: 'Operational analytics' },
+];
+
 export default function Capabilities() {
   return (
-    <section className="py-20 bg-[#F7F7F5] border-y border-[#E5E5E5]">
-      <div className="max-w-[1280px] mx-auto px-6">
-        <p className="text-sm font-semibold text-[#5F6368] mb-8 uppercase tracking-widest text-center">Built for modern logistics operations</p>
-        
-        <div className="flex flex-wrap justify-center gap-x-12 gap-y-6">
-          <div className="text-lg font-medium text-[#0A0A0A]">Real-Time Tracking</div>
-          <div className="text-lg font-medium text-[#0A0A0A]">Predictive ETA</div>
-          <div className="text-lg font-medium text-[#0A0A0A]">Dynamic Routing</div>
-          <div className="text-lg font-medium text-[#0A0A0A]">Fleet Intelligence</div>
-          <div className="text-lg font-medium text-[#0A0A0A]">Event-Driven Processing</div>
-          <div className="text-lg font-medium text-[#0A0A0A]">Operational Analytics</div>
-        </div>
+    <section className="border-y border-[#E4EEE7] bg-[#F5FAF6] py-10">
+      <div className={container}>
+        <p className="text-center text-[12px] font-bold uppercase tracking-[0.14em] text-[#6B7A72]">
+          Built for modern logistics operations
+        </p>
+        <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {capabilities.map(c => (
+            <li
+              key={c.label}
+              className="flex items-center justify-center gap-2.5 rounded-xl border border-[#E3ECE6] bg-white px-4 py-3.5 text-[14px] font-semibold text-[#1F2D26]"
+            >
+              <c.icon size={17} className="shrink-0 text-[#087D31]" />
+              {c.label}
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

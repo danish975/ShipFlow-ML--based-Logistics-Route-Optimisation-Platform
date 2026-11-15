@@ -1,98 +1,99 @@
 'use client';
 
 import { useState } from 'react';
-import { Route as RouteIcon, MapPin, Truck, CheckCircle2 } from 'lucide-react';
+import { Route as RouteIcon, Warehouse } from 'lucide-react';
+import { Card, MapBackdrop, Section, SectionHeading, cx } from './ui';
+
+// Stops in a 0–100 coordinate space.
+const depot = { x: 14, y: 62 };
+const stops = [
+  { id: 1, x: 32, y: 24 },
+  { id: 2, x: 58, y: 30 },
+  { id: 3, x: 84, y: 48 },
+  { id: 4, x: 66, y: 80 },
+];
+const currentOrder = [depot, stops[0], stops[3], stops[1], stops[2]];
+const optimisedOrder = [depot, stops[0], stops[1], stops[2], stops[3]];
+const toPath = (pts: Array<{ x: number; y: number }>) => pts.map((p, i) => `${i ? 'L' : 'M'}${p.x} ${p.y}`).join(' ');
 
 export default function RouteOptimizationDemo() {
-  const [isOptimized, setIsOptimized] = useState(false);
+  const [optimised, setOptimised] = useState(false);
+
+  const stats = [
+    { label: 'Distance', current: '45.8 km', opt: '34.2 km', delta: '−25%' },
+    { label: 'Travel time', current: '58 min', opt: '42 min', delta: '−16 min' },
+    { label: 'Stops', current: '4', opt: '4' },
+    { label: 'Vehicles', current: '1', opt: '1' },
+  ];
 
   return (
-    <section className="py-32 bg-[#FFFFFF]">
-      <div className="max-w-[1280px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-        
-        {/* Copy */}
+    <Section>
+      <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
         <div>
-          <h2 className="text-[clamp(36px,4vw,56px)] font-bold text-[#0A0A0A] leading-[1.1] mb-6 tracking-tight">
-            Turn every route into an optimized route
-          </h2>
-          <p className="text-[20px] text-[#5F6368] leading-[1.6] mb-10">
-            ShipFlow evaluates vehicle availability, delivery constraints, route distance, travel time, and operational conditions to generate efficient delivery plans.
-          </p>
+          <SectionHeading
+            kicker="Route optimisation"
+            kickerIcon={RouteIcon}
+            title="Turn every route into an"
+            highlight="optimised route."
+            description="ShipFlow weighs vehicle availability, delivery windows, distance, travel time and live conditions to build the most efficient delivery plan."
+          />
 
-          <div className="flex bg-[#F7F7F5] rounded-xl p-1 w-max border border-[#E5E5E5] mb-10">
-            <button 
-              onClick={() => setIsOptimized(false)}
-              className={`px-6 py-2 rounded-lg text-sm font-semibold transition-colors ${!isOptimized ? 'bg-[#FFFFFF] text-[#0A0A0A] shadow-sm' : 'text-[#5F6368] hover:text-[#0A0A0A]'}`}
-            >
-              Current Route
-            </button>
-            <button 
-              onClick={() => setIsOptimized(true)}
-              className={`px-6 py-2 rounded-lg text-sm font-semibold transition-colors ${isOptimized ? 'bg-[#FFFFFF] text-[#0A0A0A] shadow-sm' : 'text-[#5F6368] hover:text-[#0A0A0A]'}`}
-            >
-              Optimized Route
-            </button>
+          <div className="mt-8 inline-flex rounded-xl border border-[#E3ECE6] bg-[#F5FAF6] p-1" role="tablist">
+            {[['Current route', false], ['Optimised route', true]].map(([label, val]) => (
+              <button
+                key={label as string}
+                role="tab"
+                aria-selected={optimised === val}
+                onClick={() => setOptimised(val as boolean)}
+                className={cx(
+                  'rounded-lg px-5 py-2 text-[14px] font-semibold transition-all',
+                  optimised === val ? 'bg-white text-[#101C20] shadow-sm ring-1 ring-[#E3ECE6]' : 'text-[#6B7A72] hover:text-[#101C20]',
+                )}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-            <div>
-              <p className="text-xs font-semibold text-[#5F6368] mb-1">Distance</p>
-              <p className="text-2xl font-bold text-[#0A0A0A] transition-all">{isOptimized ? '34.2 km' : '45.8 km'}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-[#5F6368] mb-1">Travel Time</p>
-              <p className="text-2xl font-bold text-[#0A0A0A] transition-all">{isOptimized ? '42 min' : '58 min'}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-[#5F6368] mb-1">Stops</p>
-              <p className="text-2xl font-bold text-[#0A0A0A]">4</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-[#5F6368] mb-1">Vehicles</p>
-              <p className="text-2xl font-bold text-[#0A0A0A]">1</p>
-            </div>
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {stats.map(s => (
+              <div key={s.label} className="rounded-xl border border-[#E3ECE6] bg-white p-4">
+                <p className="text-[12px] font-medium text-[#6B7A72]">{s.label}</p>
+                <p className={cx('mt-1 text-[22px] font-extrabold tracking-[-0.03em] transition-colors', optimised && s.delta ? 'text-[#087D31]' : 'text-[#101C20]')}>
+                  {optimised ? s.opt : s.current}
+                </p>
+                <p className={cx('h-4 text-[11px] font-semibold text-[#087D31] transition-opacity', optimised && s.delta ? 'opacity-100' : 'opacity-0')}>{s.delta}</p>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Visual Map Demo */}
-        <div className="bg-[#F7F7F5] border border-[#E5E5E5] rounded-[24px] shadow-[0_4px_20px_rgba(0,0,0,0.04)] h-[500px] p-8 flex items-center justify-center relative overflow-hidden">
-          
-          <div className="absolute inset-0 opacity-50" style={{ backgroundImage: 'radial-gradient(#E5E5E5 2px, transparent 2px)', backgroundSize: '24px 24px' }} />
-          
-          <svg className="w-full h-full absolute inset-0 pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-            {/* Unoptimized Path */}
-            <path 
-              d="M 20 50 L 30 20 L 70 80 L 50 30 L 80 50" 
-              fill="none" 
-              stroke="#0A0A0A" 
-              strokeWidth="2" 
-              strokeDasharray="4 4"
-              className={`transition-opacity duration-500 ${isOptimized ? 'opacity-0' : 'opacity-40'}`}
-            />
-
-            {/* Optimized Path */}
-            <path 
-              d="M 20 50 L 30 20 L 50 30 L 80 50 L 70 80" 
-              fill="none" 
-              stroke="#2563EB" 
-              strokeWidth="3" 
-              className={`transition-opacity duration-500 ${isOptimized ? 'opacity-100' : 'opacity-0'}`}
-            />
+        <Card className="relative h-[440px] overflow-hidden">
+          <MapBackdrop />
+          <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+            <path d={toPath(currentOrder)} fill="none" stroke="#94A3B8" strokeDasharray="7 7" strokeLinejoin="round" vectorEffect="non-scaling-stroke" className={cx('transition-opacity duration-500', optimised ? 'opacity-25' : 'opacity-100')} style={{ strokeWidth: 3 }} />
+            <path d={toPath(optimisedOrder)} fill="none" stroke="#16A34A" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" className={cx('transition-opacity duration-500', optimised ? 'opacity-100' : 'opacity-0')} style={{ strokeWidth: 4.5 }} />
           </svg>
 
-          {/* Stops */}
-          <div className="absolute top-[50%] left-[20%] -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-[#0A0A0A] rounded-lg shadow border-2 border-white z-10 flex items-center justify-center text-white">
-            <RouteIcon size={14} />
+          <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${depot.x}%`, top: `${depot.y}%` }}>
+            <span className="grid h-10 w-10 place-items-center rounded-xl border-2 border-white bg-[#101C20] text-white shadow-lg"><Warehouse size={17} /></span>
           </div>
-          
-          <div className="absolute top-[20%] left-[30%] -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-[#FFFFFF] rounded-full shadow border-2 border-[#E5E5E5] z-10" />
-          <div className="absolute top-[30%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-[#FFFFFF] rounded-full shadow border-2 border-[#E5E5E5] z-10" />
-          <div className="absolute top-[80%] left-[70%] -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-[#FFFFFF] rounded-full shadow border-2 border-[#E5E5E5] z-10" />
-          <div className="absolute top-[50%] left-[80%] -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-[#FFFFFF] rounded-full shadow border-2 border-[#E5E5E5] z-10" />
-          
-        </div>
+          {stops.map(s => (
+            <span
+              key={s.id}
+              className={cx('absolute grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[3px] border-white text-[12px] font-bold shadow-md transition-colors', optimised ? 'bg-[#16A34A] text-white' : 'bg-white text-[#3B4A42] ring-1 ring-[#CBD5D0]')}
+              style={{ left: `${s.x}%`, top: `${s.y}%` }}
+            >
+              {optimised ? optimisedOrder.indexOf(s) : currentOrder.indexOf(s)}
+            </span>
+          ))}
 
+          <div className="absolute left-4 top-4 rounded-xl border border-[#E3ECE6] bg-white/95 px-3.5 py-2.5 shadow-sm">
+            <p className="text-[11px] font-medium text-[#6B7A72]">{optimised ? 'Optimised plan' : 'Current plan'}</p>
+            <p className={cx('text-[15px] font-bold', optimised ? 'text-[#087D31]' : 'text-[#101C20]')}>{optimised ? '34.2 km · 42 min' : '45.8 km · 58 min'}</p>
+          </div>
+        </Card>
       </div>
-    </section>
+    </Section>
   );
 }

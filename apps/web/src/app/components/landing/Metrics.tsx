@@ -1,29 +1,60 @@
+import { Clock, MapPin, Network, Route, Sparkles } from 'lucide-react';
+import { Card, IconChip, Section, SectionHeading } from './ui';
+
+const items = [
+  {
+    icon: MapPin,
+    title: 'Real-time fleet tracking',
+    text: 'Every vehicle on one live map, with status, speed and assignment at a glance.',
+    stat: '< 2s',
+    statLabel: 'location refresh',
+  },
+  {
+    icon: Clock,
+    title: 'Predictive ETA intelligence',
+    text: 'Machine-learning ETAs that flag shipments likely to miss their delivery window.',
+    stat: '91%',
+    statLabel: 'ETA model accuracy',
+  },
+  {
+    icon: Route,
+    title: 'Dynamic route optimisation',
+    text: 'Multi-stop, multi-vehicle plans that recalculate automatically when conditions change.',
+    stat: '−18%',
+    statLabel: 'average distance',
+  },
+  {
+    icon: Network,
+    title: 'Event-driven operations',
+    text: 'Every pickup, delay and reroute flows through one event stream your team can act on.',
+    stat: '9',
+    statLabel: 'lifecycle events tracked',
+  },
+];
+
 export default function Metrics() {
   return (
-    <section className="py-32 bg-[#FFFFFF]">
-      <div className="max-w-[1280px] mx-auto px-6">
-        <h2 className="text-[clamp(36px,4vw,56px)] font-bold text-[#0A0A0A] leading-[1.1] mb-16 tracking-tight max-w-[800px]">
-          Logistics intelligence built for every delivery
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-[#FFFFFF] border border-[#E5E5E5] rounded-[20px] p-8 shadow-[0_4px_20px_rgba(0,0,0,0.04)] h-64 flex items-end">
-            <h3 className="text-2xl font-bold text-[#0A0A0A] leading-snug">Real-Time<br/>Fleet Tracking</h3>
-          </div>
-          
-          <div className="bg-[#FFFFFF] border border-[#E5E5E5] rounded-[20px] p-8 shadow-[0_4px_20px_rgba(0,0,0,0.04)] h-64 flex items-end">
-            <h3 className="text-2xl font-bold text-[#0A0A0A] leading-snug">Predictive<br/>ETA Intelligence</h3>
-          </div>
-          
-          <div className="bg-[#FFFFFF] border border-[#E5E5E5] rounded-[20px] p-8 shadow-[0_4px_20px_rgba(0,0,0,0.04)] h-64 flex items-end">
-            <h3 className="text-2xl font-bold text-[#0A0A0A] leading-snug">Dynamic<br/>Route Optimization</h3>
-          </div>
-          
-          <div className="bg-[#FFFFFF] border border-[#E5E5E5] rounded-[20px] p-8 shadow-[0_4px_20px_rgba(0,0,0,0.04)] h-64 flex items-end">
-            <h3 className="text-2xl font-bold text-[#0A0A0A] leading-snug">Event-Driven<br/>Operations</h3>
-          </div>
-        </div>
+    <Section>
+      <SectionHeading
+        kicker="Why ShipFlow"
+        kickerIcon={Sparkles}
+        title="Logistics intelligence built for"
+        highlight="every delivery."
+        description="Four capabilities that work together, so operations teams spend less time firefighting and more time delivering."
+      />
+      <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {items.map(item => (
+          <Card key={item.title} className="group flex flex-col p-6 transition-all hover:-translate-y-1 hover:border-[#BFE3C8] hover:shadow-[0_18px_40px_-12px_rgba(20,110,50,0.25)]">
+            <IconChip icon={item.icon} />
+            <h3 className="mt-5 text-[17px] font-bold tracking-[-0.01em] text-[#101C20]">{item.title}</h3>
+            <p className="mt-2 flex-1 text-[14px] leading-[1.6] text-[#59676A]">{item.text}</p>
+            <div className="mt-6 border-t border-[#EDF2EE] pt-4">
+              <p className="text-[24px] font-extrabold tracking-[-0.03em] text-[#087D31]">{item.stat}</p>
+              <p className="text-[12px] font-medium text-[#6B7A72]">{item.statLabel}</p>
+            </div>
+          </Card>
+        ))}
       </div>
-    </section>
+    </Section>
   );
 }

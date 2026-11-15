@@ -2,6 +2,22 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import type { LucideIcon } from 'lucide-react';
+import {
+  ArrowRight,
+  CircleAlert,
+  CircleCheck,
+  CloudRain,
+  Lightbulb,
+  Navigation,
+  PackageX,
+  Timer,
+  TrafficCone,
+  TriangleAlert,
+  Wrench,
+} from 'lucide-react';
+import { Button, Card, KpiStrip, PageHeader, Segmented, StatusBadge, cn } from '../components/ui';
+import type { Kpi } from '../components/ui';
 
 type ExceptionSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 type ExceptionStatus = 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'IGNORED';
@@ -69,24 +85,28 @@ const EXCEPTIONS: Exception[] = [
   },
 ];
 
-const severityColors: Record<ExceptionSeverity, string> = {
-  CRITICAL: 'text-red-400 bg-red-400/10 border-red-500/30',
-  HIGH: 'text-amber-400 bg-amber-400/10 border-amber-500/30',
-  MEDIUM: 'text-blue-400 bg-blue-400/10 border-blue-500/30',
-  LOW: 'text-slate-400 bg-slate-400/10 border-slate-500/30',
+
+const typeIcons: Record<string, LucideIcon> = {
+  DELAY: Timer,
+  ROUTE_DEVIATION: Navigation,
+  TRAFFIC: TrafficCone,
+  WEATHER: CloudRain,
+  VEHICLE: Wrench,
+  DELIVERY: PackageX,
 };
 
-const statusColors: Record<ExceptionStatus, string> = {
-  OPEN: 'text-rose-400 bg-rose-400/10',
-  ACKNOWLEDGED: 'text-amber-400 bg-amber-400/10',
-  RESOLVED: 'text-emerald-400 bg-emerald-400/10',
-  IGNORED: 'text-slate-500 bg-slate-500/10',
+const severityAccent: Record<ExceptionSeverity, string> = {
+  CRITICAL: 'bg-red-50 text-red-600 ring-red-600/15',
+  HIGH: 'bg-amber-50 text-amber-700 ring-amber-600/20',
+  MEDIUM: 'bg-sky-50 text-sky-700 ring-sky-600/15',
+  LOW: 'bg-gray-100 text-gray-600 ring-gray-500/15',
 };
 
-const categories = ['All', 'Critical', 'Delay', 'Route', 'Vehicle', 'Traffic', 'Weather', 'Delivery'];
+const categories = ['All', 'Critical', 'Delay', 'Route', 'Vehicle', 'Traffic', 'Weather', 'Delivery'] as const;
+type Category = (typeof categories)[number];
 
 export default function ExceptionsPage() {
-  const [activeCategory, setActiveCategory] = useState('All');
+  const [activeCategory, setActiveCategory] = useState<Category>('All');
   const [exceptions, setExceptions] = useState(EXCEPTIONS);
 
   const filtered = exceptions.filter(e => {
@@ -96,99 +116,103 @@ export default function ExceptionsPage() {
   });
 
   const openCount = exceptions.filter(e => e.status === 'OPEN').length;
+  const ackCount = exceptions.filter(e => e.status === 'ACKNOWLEDGED').length;
+  const resolvedCount = exceptions.filter(e => e.status === 'RESOLVED').length;
   const criticalCount = exceptions.filter(e => e.severity === 'CRITICAL' && e.status !== 'RESOLVED').length;
 
+  const kpis: Kpi[] = [
+    { icon: CircleAlert, label: 'Open exceptions', value: String(openCount), caption: 'Awaiting action' },
+    { icon: TriangleAlert, label: 'Critical', value: String(criticalCount), caption: 'Unresolved critical issues', delta: criticalCount ? 'Act now' : 'Clear', deltaGood: criticalCount === 0, deltaCaption: 'priority' },
+    { icon: Timer, label: 'Acknowledged', value: String(ackCount), caption: 'Being worked on' },
+    { icon: CircleCheck, label: 'Resolved today', value: String(resolvedCount), caption: 'Closed this session' },
+  ];
+
+  const counts = Object.fromEntries(
+    categories.map(c => [
+      c,
+      c === 'All' ? exceptions.length : c === 'Critical' ? criticalCount : exceptions.filter(e => e.category === c).length,
+    ]),
+  ) as Record<Category, number>;
+
   function updateStatus(id: string, status: ExceptionStatus) {
-    setExceptions(prev => prev.map(e => e.id === id ? { ...e, status } : e));
+    setExceptions(prev => prev.map(e => (e.id === id ? { ...e, status } : e)));
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-100">Exceptions Center</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            {openCount} open · {criticalCount} critical
-          </p>
-        </div>
-      </div>
+    <div className="space-y-4">
+      <PageHeader title="Exceptions center" description={`${openCount} open · ${criticalCount} critical`} />
 
-      {/* Category Filters */}
-      <div className="flex gap-2 flex-wrap">
-        {categories.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              activeCategory === cat
-                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                : 'text-slate-400 hover:bg-slate-800 border border-transparent'
-            }`}
-          >
-            {cat}
-            {cat === 'Critical' && criticalCount > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] bg-red-500/20 text-red-400 font-bold">
-                {criticalCount}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <Card>
+        <KpiStrip items={kpis} />
+      </Card>
 
-      {/* Exceptions List */}
+      <Segmented options={categories} value={activeCategory} onChange={setActiveCategory} counts={counts} />
+
       <div className="space-y-3">
-        {filtered.map((exc) => (
-          <div key={exc.id} className={`bg-slate-900 border rounded-2xl p-5 transition-all ${
-            exc.severity === 'CRITICAL' ? 'border-red-500/20' : 'border-slate-800'
-          }`}>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${severityColors[exc.severity]}`}>
-                    {exc.severity}
-                  </span>
-                  <span className="text-xs text-slate-500 font-medium">{exc.type.replace('_', ' ')}</span>
-                  <span className="text-[10px] text-slate-600">·</span>
-                  <span className="text-[10px] text-slate-600">{exc.detectedAt}</span>
-                </div>
-                <h4 className="text-sm font-semibold text-slate-200">{exc.title}</h4>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">{exc.description}</p>
-                
-                <div className="mt-3 p-2.5 bg-slate-950/50 border border-slate-800/50 rounded-lg">
-                  <p className="text-[10px] text-slate-500 font-semibold mb-0.5">RECOMMENDED ACTION</p>
-                  <p className="text-xs text-slate-300">{exc.recommendedAction}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-end gap-2 shrink-0">
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${statusColors[exc.status]}`}>
-                  {exc.status}
+        {filtered.map(exc => {
+          const Icon = typeIcons[exc.type] ?? CircleAlert;
+          const done = exc.status === 'RESOLVED' || exc.status === 'IGNORED';
+          return (
+            <Card key={exc.id} className={cn('transition-all', exc.severity === 'CRITICAL' && !done && 'border-red-200', done && 'opacity-70')}>
+              <div className="flex flex-col md:flex-row md:items-start gap-4">
+                <span className={cn('w-10 h-10 rounded-xl flex items-center justify-center ring-1 ring-inset shrink-0', severityAccent[exc.severity])}>
+                  <Icon className="w-5 h-5" strokeWidth={1.75} />
                 </span>
-                {exc.status === 'OPEN' && (
-                  <div className="flex gap-1.5 mt-1">
-                    <button 
-                      onClick={() => updateStatus(exc.id, 'ACKNOWLEDGED')}
-                      className="px-2.5 py-1 bg-amber-600/20 text-amber-400 rounded text-[10px] font-medium hover:bg-amber-600/30 transition-colors"
-                    >
-                      Acknowledge
-                    </button>
-                    <button 
-                      onClick={() => updateStatus(exc.id, 'RESOLVED')}
-                      className="px-2.5 py-1 bg-emerald-600/20 text-emerald-400 rounded text-[10px] font-medium hover:bg-emerald-600/30 transition-colors"
-                    >
-                      Resolve
-                    </button>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusBadge status={exc.severity} />
+                    <span className="text-xs text-gray-500">{exc.type.replace('_', ' ').toLowerCase()}</span>
+                    <span className="text-xs text-gray-300">•</span>
+                    <span className="text-xs text-gray-500">{exc.detectedAt}</span>
+                    <span className="text-xs text-gray-300">•</span>
+                    <span className="text-xs text-gray-400">{exc.id}</span>
                   </div>
-                )}
-                {exc.shipmentId && (
-                  <Link href={`/dashboard/shipments/${exc.shipmentId}`} className="text-[10px] text-blue-400 hover:text-blue-300 mt-1">
-                    View Shipment →
-                  </Link>
-                )}
+                  <h4 className="mt-2 text-sm font-semibold text-gray-900">{exc.title}</h4>
+                  <p className="text-[13px] text-gray-600 mt-1 leading-relaxed">{exc.description}</p>
+
+                  <div className="mt-3 flex items-start gap-2 p-3 bg-gray-50 border border-gray-100 rounded-xl">
+                    <Lightbulb className="w-4 h-4 text-green-700 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">Recommended action</p>
+                      <p className="text-[13px] text-gray-800 mt-0.5">{exc.recommendedAction}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex md:flex-col items-center md:items-end gap-2 shrink-0">
+                  <StatusBadge status={exc.status} />
+                  {exc.status === 'OPEN' && (
+                    <div className="flex gap-2 md:mt-1">
+                      <Button variant="secondary" className="px-2.5 py-1.5 text-xs" onClick={() => updateStatus(exc.id, 'ACKNOWLEDGED')}>
+                        Acknowledge
+                      </Button>
+                      <Button className="px-2.5 py-1.5 text-xs" onClick={() => updateStatus(exc.id, 'RESOLVED')}>
+                        Resolve
+                      </Button>
+                    </div>
+                  )}
+                  {exc.status === 'ACKNOWLEDGED' && (
+                    <Button className="px-2.5 py-1.5 text-xs md:mt-1" onClick={() => updateStatus(exc.id, 'RESOLVED')}>
+                      Resolve
+                    </Button>
+                  )}
+                  {exc.shipmentId && (
+                    <Link
+                      href={`/dashboard/shipments/${exc.shipmentId}`}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-green-700 hover:text-green-800 md:mt-1"
+                    >
+                      View shipment <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
-        ))}
+            </Card>
+          );
+        })}
+        {filtered.length === 0 && (
+          <Card className="text-center py-12 text-sm text-gray-500">No exceptions in this category.</Card>
+        )}
       </div>
     </div>
   );

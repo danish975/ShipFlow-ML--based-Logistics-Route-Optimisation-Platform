@@ -1,7 +1,22 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { CircleCheck, Download, Package, Plus, Search, TriangleAlert, Truck } from 'lucide-react';
+import { useShipments } from '../components/shipments-context';
+import type { ApiShipment } from '../components/shipments-context';
+import {
+  Badge,
+  Button,
+  Card,
+  KpiStrip,
+  PageHeader,
+  ProgressBar,
+  StatusBadge,
+  riskTone,
+  table,
+} from '../components/ui';
+import type { Kpi } from '../components/ui';
 
 // Demo shipment data matching seed
 const SHIPMENTS = [
@@ -15,120 +30,218 @@ const SHIPMENTS = [
   { id: 'SHP-2008', from: 'Connaught Place, Delhi', to: 'Indirapuram, Ghaziabad', status: 'PICKED_UP', priority: 'URGENT', driver: 'Suresh Singh', vehicle: 'HR38X5678', eta: '16:20', riskLevel: 'MEDIUM', riskScore: 38 },
 ];
 
-const statusColors: Record<string, string> = {
-  CREATED: 'text-slate-400 bg-slate-400/10',
-  ASSIGNED: 'text-blue-400 bg-blue-400/10',
-  PICKED_UP: 'text-cyan-400 bg-cyan-400/10',
-  IN_TRANSIT: 'text-emerald-400 bg-emerald-400/10',
-  DELAYED: 'text-amber-400 bg-amber-400/10',
-  DELIVERED: 'text-green-400 bg-green-400/10',
-  FAILED: 'text-rose-400 bg-rose-400/10',
-  CANCELLED: 'text-slate-500 bg-slate-500/10',
-};
+const filters = ['All', 'In Transit', 'Picked Up', 'Assigned', 'Created', 'Delivered'] as const;
+type Filter = (typeof filters)[number];
 
-const riskColors: Record<string, string> = {
-  LOW: 'text-emerald-400',
-  MEDIUM: 'text-amber-400',
-  HIGH: 'text-rose-400',
-  CRITICAL: 'text-red-500',
-};
+const toStatus = (f: Filter) => f.toUpperCase().replace(' ', '_');
 
-const filters = ['All', 'In Transit', 'Assigned', 'Created', 'Delivered', 'Delayed'];
+interface Row {
+  key: string;
+  id: string;
+  href: string;
+  from: string;
+  to: string;
+  status: string;
+  priority: string;
+  driver: string;
+  vehicle: string;
+  eta: string;
+  riskScore: number | null;
+  live: boolean;
+}
+
+const DEMO_ROWS: Row[] = SHIPMENTS.map(s => ({
+  key: s.id,
+  id: s.id,
+  href: `/dashboard/shipments/${s.id}`,
+  from: s.from,
+  to: s.to,
+  status: s.status,
+  priority: s.priority,
+  driver: s.driver,
+  vehicle: s.vehicle,
+  eta: s.eta,
+  riskScore: s.riskScore,
+  live: false,
+}));
+
+function toRow(s: ApiShipment): Row {
+  const driverName = s.driver?.user ? `${s.driver.user.firstName ?? ''} ${s.driver.user.lastName ?? ''}`.trim() : '';
+  const eta = s.estimatedArrival ?? s.deliveryWindowEnd;
+  return {
+    key: s.id,
+    id: s.shipmentNumber,
+    href: `/dashboard/shipments/${s.id}`,
+    from: `${s.pickupAddress}, ${s.pickupCity}`,
+    to: `${s.deliveryAddress}, ${s.deliveryCity}`,
+    status: s.status,
+    priority: s.priority,
+    driver: driverName || 'Unassigned',
+    vehicle: s.vehicle?.vehicleNumber ?? '—',
+    eta: eta ? new Date(eta).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }) : '—',
+    riskScore: s.riskScore ?? null,
+    live: true,
+  };
+}
 
 export default function ShipmentsPage() {
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilter, setActiveFilter] = useState<Filter>('All');
+  const [query, setQuery] = useState('');
+  const { shipments: apiShipments, loadError, recentlyCreatedId, openCreateShipment } = useShipments();
 
-  const filtered = SHIPMENTS.filter(s => {
-    if (activeFilter === 'All') return true;
-    return s.status === activeFilter.toUpperCase().replace(' ', '_');
+  const rows = useMemo(() => [...apiShipments.map(toRow), ...DEMO_ROWS], [apiShipments]);
+
+  const kpis: Kpi[] = [
+    { icon: Package, label: 'Total shipments', value: String(rows.length), caption: `${apiShipments.length} live · ${DEMO_ROWS.length} demo` },
+    { icon: Truck, label: 'In transit', value: String(rows.filter(s => s.status === 'IN_TRANSIT').length), caption: 'Moving right now' },
+    { icon: CircleCheck, label: 'Delivered today', value: String(rows.filter(s => s.status === 'DELIVERED').length), caption: 'Proof of delivery captured' },
+    { icon: TriangleAlert, label: 'High delay risk', value: String(rows.filter(s => (s.riskScore ?? 0) > 60).length), caption: 'Risk score above 60%', delta: 'Needs review', deltaGood: false, deltaCaption: 'ML prediction' },
+  ];
+
+  const counts = useMemo(() => {
+    const c = {} as Record<Filter, number>;
+    filters.forEach(f => {
+      c[f] = f === 'All' ? rows.length : rows.filter(s => s.status === toStatus(f)).length;
+    });
+    return c;
+  }, [rows]);
+
+  const q = query.trim().toLowerCase();
+  const filtered = rows.filter(s => {
+    if (activeFilter !== 'All' && s.status !== toStatus(activeFilter)) return false;
+    if (!q) return true;
+    return [s.id, s.from, s.to, s.driver, s.vehicle].some(v => v.toLowerCase().includes(q));
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-100">Shipments</h1>
-          <p className="text-sm text-slate-500 mt-1">{SHIPMENTS.length} total shipments</p>
+    <div className="space-y-4">
+      <PageHeader
+        title="Shipments"
+        description="Track every consignment from pickup to proof of delivery."
+        actions={
+          <>
+            <Button variant="secondary"><Download className="w-4 h-4" /> Export</Button>
+            <Button onClick={openCreateShipment}><Plus className="w-4 h-4" /> Create shipment</Button>
+          </>
+        }
+      />
+
+      {loadError && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50 text-[13px] text-amber-800">
+          <TriangleAlert className="w-4 h-4 shrink-0" />
+          Couldn’t load live shipments ({loadError}). Showing demo data only.
         </div>
-        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
-          + Create Shipment
-        </button>
-      </div>
+      )}
 
-      {/* Filters */}
-      <div className="flex gap-2">
-        {filters.map(f => (
-          <button
-            key={f}
-            onClick={() => setActiveFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              activeFilter === f
-                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                : 'text-slate-400 hover:bg-slate-800 border border-transparent'
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
+      <Card>
+        <KpiStrip items={kpis} />
+      </Card>
 
-      {/* Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-800 text-slate-500">
-              <th className="text-left px-5 py-3 font-medium">Shipment</th>
-              <th className="text-left px-5 py-3 font-medium">Route</th>
-              <th className="text-left px-5 py-3 font-medium">Status</th>
-              <th className="text-left px-5 py-3 font-medium">Priority</th>
-              <th className="text-left px-5 py-3 font-medium">Driver</th>
-              <th className="text-left px-5 py-3 font-medium">ETA</th>
-              <th className="text-left px-5 py-3 font-medium">Risk</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((s) => (
-              <tr key={s.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                <td className="px-5 py-3.5">
-                  <Link href={`/dashboard/shipments/${s.id}`} className="text-blue-400 hover:text-blue-300 font-semibold">
-                    {s.id}
-                  </Link>
-                </td>
-                <td className="px-5 py-3.5">
-                  <span className="text-slate-200 text-xs">{s.from}</span>
-                  <span className="text-slate-600 mx-1.5">→</span>
-                  <span className="text-slate-200 text-xs">{s.to}</span>
-                </td>
-                <td className="px-5 py-3.5">
-                  <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${statusColors[s.status] || ''}`}>
-                    {s.status.replace('_', ' ')}
-                  </span>
-                </td>
-                <td className="px-5 py-3.5">
-                  <span className={`text-xs font-medium ${s.priority === 'HIGH' || s.priority === 'URGENT' ? 'text-amber-400' : 'text-slate-400'}`}>
-                    {s.priority}
-                  </span>
-                </td>
-                <td className="px-5 py-3.5 text-slate-300 text-xs">{s.driver}</td>
-                <td className="px-5 py-3.5 text-slate-300 text-xs font-mono">{s.eta}</td>
-                <td className="px-5 py-3.5">
-                  <div className="flex items-center gap-2">
-                    <div className="w-12 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full ${s.riskScore > 60 ? 'bg-rose-500' : s.riskScore > 30 ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                        style={{ width: `${s.riskScore}%` }}
-                      />
-                    </div>
-                    <span className={`text-[11px] font-bold ${riskColors[s.riskLevel]}`}>
-                      {s.riskScore}%
-                    </span>
-                  </div>
-                </td>
-              </tr>
+      <Card padded={false}>
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-4 border-b border-gray-100">
+          <div className="inline-flex flex-wrap gap-1 p-1 bg-gray-100 rounded-xl">
+            {filters.map(f => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setActiveFilter(f)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  activeFilter === f ? 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                {f}
+                <span className={`ml-1.5 text-[10px] ${activeFilter === f ? 'text-green-700' : 'text-gray-400'}`}>{counts[f]}</span>
+              </button>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+          <label className="flex items-center gap-2 h-9 px-3 w-full lg:w-72 bg-white border border-gray-200 rounded-xl focus-within:border-green-600">
+            <Search className="w-4 h-4 text-gray-400" />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search ID, city, driver, vehicle"
+              className="flex-1 min-w-0 bg-transparent outline-none text-[13px] placeholder:text-gray-400"
+            />
+          </label>
+        </div>
+
+        <div className={table.wrap}>
+          <table className={table.table}>
+            <thead>
+              <tr className={table.headRow}>
+                <th className={table.th}>Shipment</th>
+                <th className={table.th}>Route</th>
+                <th className={table.th}>Status</th>
+                <th className={table.th}>Priority</th>
+                <th className={table.th}>Driver</th>
+                <th className={table.th}>ETA</th>
+                <th className={table.th}>Delay risk</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(s => (
+                <tr key={s.key} className={`${table.row} ${s.key === recentlyCreatedId ? 'bg-green-50/60' : ''}`}>
+                  <td className={table.td}>
+                    <Link href={s.href} className="font-semibold text-gray-900 hover:text-green-700">
+                      {s.id}
+                    </Link>
+                    <p className="mt-0.5">
+                      {s.key === recentlyCreatedId ? (
+                        <Badge tone="green">New</Badge>
+                      ) : (
+                        <span className="text-[10px] uppercase tracking-wide text-gray-400">{s.live ? 'Live' : 'Demo'}</span>
+                      )}
+                    </p>
+                  </td>
+                  <td className={table.td}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full border-2 border-gray-400 shrink-0" />
+                      <span className="text-gray-700">{s.from}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="w-2 h-2 rounded-full bg-green-700 shrink-0" />
+                      <span className="text-gray-500">{s.to}</span>
+                    </div>
+                  </td>
+                  <td className={table.td}><StatusBadge status={s.status} /></td>
+                  <td className={table.td}>
+                    {s.priority === 'HIGH' || s.priority === 'URGENT' ? (
+                      <StatusBadge status={s.priority} />
+                    ) : (
+                      <span className="text-gray-500 text-xs">{s.priority.charAt(0) + s.priority.slice(1).toLowerCase()}</span>
+                    )}
+                  </td>
+                  <td className={table.td}>
+                    <p className="text-gray-900">{s.driver}</p>
+                    <p className="text-[11px] text-gray-400">{s.vehicle}</p>
+                  </td>
+                  <td className={`${table.td} tabular-nums`}>{s.eta}</td>
+                  <td className={table.td}>
+                    {s.riskScore === null ? (
+                      <span className="text-xs text-gray-400">Not assessed</span>
+                    ) : (
+                      <div className="flex items-center gap-2.5 w-32">
+                        <ProgressBar value={s.riskScore} tone={riskTone(s.riskScore)} />
+                        <span className="text-xs font-semibold text-gray-700 tabular-nums w-8 text-right">{s.riskScore}%</span>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-5 py-12 text-center text-sm text-gray-500">
+                    No shipments match the current filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-5 py-3 border-t border-gray-100 text-xs text-gray-500">
+          Showing {filtered.length} of {rows.length} shipments
+        </div>
+      </Card>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { ShipmentsService } from './shipments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ShipmentStatus } from '../enums';
+import { CreateShipmentDto } from './dto/create-shipment.dto';
 
 @ApiTags('Shipments')
 @ApiBearerAuth()
@@ -23,7 +24,7 @@ export class ShipmentsController {
   }
 
   @Post()
-  create(@Body() createData: any, @CurrentUser() user: any) {
+  create(@Body() createData: CreateShipmentDto, @CurrentUser() user: any) {
     return this.shipmentsService.create(createData, user.organizationId, user.id);
   }
 

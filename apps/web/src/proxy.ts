@@ -10,6 +10,8 @@ import type { NextRequest } from 'next/server';
 export function proxy(request: NextRequest) {
   if (!request.cookies.has('accessToken')) {
     const loginUrl = new URL('/login', request.url);
+    // Remember where the user was going; /login validates it before use.
+    loginUrl.searchParams.set('next', request.nextUrl.pathname + request.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="482" height="146" viewBox="14 16 482 146" fill="none">
+  <defs>
+    <linearGradient id="green" x1="26" y1="25" x2="145" y2="155" gradientUnits="userSpaceOnUse"><stop stop-color="#83D625"/><stop offset=".52" stop-color="#0A9C2D"/><stop offset="1" stop-color="#006A27"/></linearGradient>
+    <linearGradient id="dark" x1="191" y1="29" x2="191" y2="88" gradientUnits="userSpaceOnUse"><stop stop-color="#10212B"/><stop offset="1" stop-color="#071822"/></linearGradient>
+  </defs>
+  <path d="M20 137c23-27 50-37 88-37 24 0 47 6 62 19-28 34-86 52-137 38 32-2 51-9 72-21-30-4-58-2-85 1Z" fill="url(#green)"/>
+  <path d="M33 92 82 64l47 26v42l-48 27-48-27V92Z" fill="url(#green)"/>
+  <path d="m33 92 48 27 48-29M81 119v40" stroke="#fff" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M57 78 81 64l47 26-24 15-47-27Z" fill="#B8F047"/>
+  <path d="M74 76v13l13 7V83" stroke="#fff" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M117 45c0-13 10-23 23-23s23 10 23 23c0 18-23 43-23 43s-23-25-23-43Zm23 8a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" fill="#07872C"/>
+  <path d="M87 122h39c9 0 15 6 15 15v12h-14a10 10 0 0 0-20 0H87v-27Z" fill="url(#dark)"/>
+  <path d="M102 128h19v11h-19v-11Z" fill="#F8FBF5"/>
+  <circle cx="107" cy="150" r="7" fill="#fff"/><circle cx="107" cy="150" r="3.4" fill="#0B8E30"/><circle cx="137" cy="150" r="7" fill="#fff"/><circle cx="137" cy="150" r="3.4" fill="#0B8E30"/>
+  <text x="174" y="91" fill="url(#dark)" font-family="Arial, Helvetica, sans-serif" font-size="65" font-weight="800" letter-spacing="-3">Ship</text>
+  <text x="313" y="91" fill="#07872C" font-family="Arial, Helvetica, sans-serif" font-size="65" font-weight="800" letter-spacing="-3">Flow</text>
+  <text x="177" y="126" fill="#26343C" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" letter-spacing="3.3">LOGISTICS COMMAND CENTER</text>
+</svg>
