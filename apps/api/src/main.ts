@@ -1,6 +1,6 @@
 import './env';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe, Logger, RequestMethod } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
@@ -18,7 +18,7 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({
-    origin: process.env.CORS_ORIGINS?.split(',') || [
+    origin: process.env.CORS_ORIGINS?.split(',').map((o) => o.trim()).filter(Boolean) || [
       'http://localhost:3000',
       'http://localhost:3001',
     ],
@@ -28,7 +28,13 @@ async function bootstrap() {
   });
 
   // Global prefix
-  app.setGlobalPrefix('api/v1');
+  // Health endpoints stay reachable outside the versioned prefix
+  app.setGlobalPrefix('api/v1', {
+    exclude: [
+      { path: '/', method: RequestMethod.GET },
+      { path: 'api/health', method: RequestMethod.GET },
+    ],
+  });
 
   // Validation
   app.useGlobalPipes(
@@ -64,8 +70,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.API_PORT || 3002;
-  await app.listen(port);
+  // Render (and most PaaS) inject PORT; API_PORT remains the local-dev setting
+  const port = process.env.PORT || process.env.API_PORT || 3002;
+  await app.listen(port, '0.0.0.0');
 
   logger.log(`🚀 ShipFlow API running on http://localhost:${port}`);
   logger.log(`📄 Swagger docs at http://localhost:${port}/api/docs`);
