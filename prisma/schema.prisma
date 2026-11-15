@@ -1,0 +1,496 @@
+// Prisma Schema for ShipFlow - Intelligent Logistics Platform
+// This schema defines all core data models for the platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url = "file:./dev.db"
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ============================================
+// MODELS
+// ============================================
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  address     String?
+  city        String?
+  state       String?
+  country     String   @default("India")
+  phone       String?
+  email       String?
+  logo        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  drivers     Driver[]
+  vehicles    Vehicle[]
+  shipments   Shipment[]
+  orders      Order[]
+  routes      Route[]
+  notifications Notification[]
+  auditLogs   AuditLog[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String       @id @default(cuid())
+  email          String       @unique
+  googleId       String?      @unique
+  passwordHash   String
+  firstName      String
+  lastName       String
+  phone          String?
+  role           String     
+  isActive       Boolean      @default(true)
+  lastLoginAt    DateTime?
+  refreshToken   String?
+  organizationId String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  driver         Driver?
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("users")
+}
+
+model Driver {
+  id               String       @id @default(cuid())
+  employeeId       String       @unique
+  licenseNumber    String
+  licenseExpiry    DateTime
+  status           String 
+  currentLatitude  Float?
+  currentLongitude Float?
+  lastLocationAt   DateTime?
+  rating           Float        @default(5.0)
+  totalDeliveries  Int          @default(0)
+  isActive         Boolean      @default(true)
+  userId           String       @unique
+  organizationId   String
+  vehicleId        String?      @unique
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  vehicle          Vehicle?     @relation(fields: [vehicleId], references: [id])
+  shipments        Shipment[]
+  trackingEvents   TrackingEvent[]
+  routes           Route[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([vehicleId])
+  @@map("drivers")
+}
+
+model Vehicle {
+  id               String        @id @default(cuid())
+  vehicleNumber    String        @unique
+  type             String
+  make             String?
+  model            String?
+  year             Int?
+  capacityKg       Float
+  capacityVolumeCbm Float?
+  fuelType         String      
+  status           String 
+  currentLatitude  Float?
+  currentLongitude Float?
+  lastLocationAt   DateTime?
+  odometerKm       Float         @default(0)
+  isActive         Boolean       @default(true)
+  organizationId   String
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  organization     Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  driver           Driver?
+  shipments        Shipment[]
+  routes           Route[]
+  maintenanceRecords MaintenanceRecord[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([type])
+  @@map("vehicles")
+}
+
+model Order {
+  id               String   @id @default(cuid())
+  orderNumber      String   @unique
+  customerName     String
+  customerEmail    String?
+  customerPhone    String
+  notes            String?
+  totalWeight      Float?
+  totalItems       Int      @default(1)
+  organizationId   String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  shipments        Shipment[]
+
+  @@index([organizationId])
+  @@index([orderNumber])
+  @@map("orders")
+}
+
+model Shipment {
+  id                String           @id @default(cuid())
+  shipmentNumber    String           @unique
+  status            String   
+  priority          String 
+
+  // Addresses
+  pickupAddress     String
+  pickupCity        String
+  pickupState       String
+  pickupPincode     String
+  pickupLatitude    Float?
+  pickupLongitude   Float?
+  pickupContactName String?
+  pickupContactPhone String?
+
+  deliveryAddress   String
+  deliveryCity      String
+  deliveryState     String
+  deliveryPincode   String
+  deliveryLatitude  Float?
+  deliveryLongitude Float?
+  deliveryContactName String?
+  deliveryContactPhone String?
+
+  // Package details
+  packageWeight     Float
+  packageLength     Float?
+  packageWidth      Float?
+  packageHeight     Float?
+  packageDescription String?
+
+  // Delivery window
+  deliveryWindowStart DateTime?
+  deliveryWindowEnd   DateTime?
+
+  // Tracking
+  currentLatitude   Float?
+  currentLongitude  Float?
+  estimatedArrival  DateTime?
+  actualPickupAt    DateTime?
+  actualDeliveryAt  DateTime?
+  distanceKm        Float?
+
+  // ML predictions
+  predictedEtaMinutes Float?
+  etaConfidence       Float?
+  riskScore           Float?
+  riskLevel           String?
+  riskFactors         String?
+
+  // Delivery details
+  deliveryProof     String?
+  deliveryNotes     String?
+  failureReason     String?
+
+  // Relations
+  orderId           String?
+  driverId          String?
+  vehicleId         String?
+  routeId           String?
+  organizationId    String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  deletedAt         DateTime?
+
+  order             Order?           @relation(fields: [orderId], references: [id])
+  driver            Driver?          @relation(fields: [driverId], references: [id])
+  vehicle           Vehicle?         @relation(fields: [vehicleId], references: [id])
+  route             Route?           @relation(fields: [routeId], references: [id])
+  organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  events            ShipmentEvent[]
+  trackingEvents    TrackingEvent[]
+  predictions       Prediction[]
+  riskAssessments   RiskAssessment[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([driverId])
+  @@index([vehicleId])
+  @@index([routeId])
+  @@index([priority])
+  @@index([createdAt])
+  @@index([shipmentNumber])
+  @@map("shipments")
+}
+
+model Route {
+  id               String      @id @default(cuid())
+  routeNumber      String      @unique
+  status           String 
+  
+  // Route metrics
+  totalDistanceKm  Float?
+  totalDurationMin Float?
+  optimizedDistanceKm Float?
+  optimizedDurationMin Float?
+  distanceSavedKm  Float?
+  
+  // Polyline/geometry for map rendering
+  routeGeometry    String?
+  optimizedGeometry String?
+  
+  // Start/end points
+  startLatitude    Float?
+  startLongitude   Float?
+  endLatitude      Float?
+  endLongitude     Float?
+  startAddress     String?
+  endAddress       String?
+  
+  startedAt        DateTime?
+  completedAt      DateTime?
+
+  driverId         String?
+  vehicleId        String?
+  organizationId   String
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  driver           Driver?     @relation(fields: [driverId], references: [id])
+  vehicle          Vehicle?    @relation(fields: [vehicleId], references: [id])
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stops            RouteStop[]
+  shipments        Shipment[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([driverId])
+  @@map("routes")
+}
+
+model RouteStop {
+  id            String   @id @default(cuid())
+  sequenceOrder Int
+  address       String
+  latitude      Float
+  longitude     Float
+  stopType      String   // PICKUP, DELIVERY, WAREHOUSE
+  
+  estimatedArrival DateTime?
+  actualArrival    DateTime?
+  estimatedDeparture DateTime?
+  actualDeparture  DateTime?
+  
+  status        String   @default("PENDING") // PENDING, ARRIVED, COMPLETED, SKIPPED
+  notes         String?
+  
+  routeId       String
+  shipmentId    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  route         Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@index([routeId])
+  @@index([sequenceOrder])
+  @@map("route_stops")
+}
+
+model TrackingEvent {
+  id          String   @id @default(cuid())
+  latitude    Float
+  longitude   Float
+  speed       Float?
+  heading     Float?
+  accuracy    Float?
+  batteryLevel Float?
+  
+  driverId    String
+  shipmentId  String?
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  driver      Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  shipment    Shipment? @relation(fields: [shipmentId], references: [id])
+
+  @@index([driverId])
+  @@index([shipmentId])
+  @@index([timestamp])
+  @@map("tracking_events")
+}
+
+model ShipmentEvent {
+  id           String    @id @default(cuid())
+  eventType    String
+  description  String?
+  metadata     String?
+  latitude     Float?
+  longitude    Float?
+  
+  shipmentId   String
+  userId       String?
+  createdAt    DateTime  @default(now())
+
+  shipment     Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("shipment_events")
+}
+
+model Prediction {
+  id                String   @id @default(cuid())
+  modelType         String   // ETA, RISK, DELIVERY_TIME, ROUTE_COST
+  modelVersion      String
+  
+  predictedValue    Float
+  confidence        Float?
+  features          String?
+  
+  actualValue       Float?
+  error             Float?
+  
+  shipmentId        String
+  createdAt         DateTime @default(now())
+
+  shipment          Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([modelType])
+  @@index([createdAt])
+  @@map("predictions")
+}
+
+model RiskAssessment {
+  id           String    @id @default(cuid())
+  riskScore    Float
+  riskLevel    String
+  factors      String      // Array of contributing factors
+  
+  modelVersion String
+  
+  shipmentId   String
+  createdAt    DateTime  @default(now())
+
+  shipment     Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([riskLevel])
+  @@index([createdAt])
+  @@map("risk_assessments")
+}
+
+model Notification {
+  id             String           @id @default(cuid())
+  type           String
+  title          String
+  message        String
+  isRead         Boolean          @default(false)
+  metadata       String?
+  
+  userId         String
+  organizationId String
+  createdAt      DateTime         @default(now())
+  readAt         DateTime?
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model MaintenanceRecord {
+  id            String            @id @default(cuid())
+  type          String
+  status        String 
+  description   String
+  cost          Float?
+  scheduledDate DateTime
+  completedDate DateTime?
+  notes         String?
+  
+  vehicleId     String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  vehicle       Vehicle           @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("maintenance_records")
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  action       String
+  resource     String
+  resourceId   String
+  metadata     String?
+  ipAddress    String?
+  userAgent    String?
+  
+  userId       String?
+  organizationId String
+  createdAt    DateTime @default(now())
+
+  user         User?    @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([resource])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
