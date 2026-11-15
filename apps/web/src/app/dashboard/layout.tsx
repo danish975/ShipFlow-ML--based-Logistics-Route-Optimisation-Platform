@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
@@ -235,11 +236,15 @@ function Sidebar({
     >
       {/* Brand */}
       <div className={cn('h-16 flex items-center px-5', collapsed ? 'justify-center px-0' : 'justify-between')}>
-        <Link href="/" className="flex items-center gap-2.5 min-w-0">
-          <span className="w-8 h-8 rounded-[9px] bg-green-700 flex items-center justify-center shrink-0 shadow-sm">
-            <span className="w-3.5 h-3.5 border-2 border-white rounded-[3px] rotate-45" />
-          </span>
-          {!collapsed && <span className="text-[17px] font-semibold tracking-tight text-gray-900">ShipFlow</span>}
+        <Link href="/dashboard" className={cn('flex items-center shrink-0', collapsed ? 'w-10 h-10 justify-center' : 'w-[174px] h-12')} aria-label="ShipFlow dashboard">
+          <Image
+            src={collapsed ? '/shipflow-mark.svg' : '/shipflow-logo.svg'}
+            alt="ShipFlow Logistics Command Center"
+            width={collapsed ? 42 : 700}
+            height={collapsed ? 44 : 190}
+            priority
+            className={collapsed ? 'w-9 h-10 object-contain' : 'w-full max-h-11 object-contain'}
+          />
         </Link>
         {!collapsed && (
           <button
